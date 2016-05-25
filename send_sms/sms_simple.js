@@ -5,7 +5,6 @@ function Self(url) {
 	 */
 
 	this.url = url;
-	this.fs = require('fs');
 	this.page = require('webpage').create();
 	this.args = require('system').args;
 	this.login_info = {};
@@ -13,17 +12,8 @@ function Self(url) {
 	this.login_info.user_name = this.args[2];
 	this.login_info.password = this.args[3];
 	this.sms = {};
-	this.sms.content = '';
-	this.sms.content_path = '/Users/hyy/FastWork/send_sms/content.txt';
-	this.sms.person_path = '/Users/hyy/FastWork/send_sms/var.csv';
-
-	/**
-	 * 读取内容
-	 */
-	this.sms.content = this.fs.read(this.sms.content_path);
-	if (this.sms.content.lastIndexOf('\n') == this.sms.content.length - 1) {
-		this.sms.content = this.sms.content.substr(0, this.sms.content.length - 1);
-	}
+	this.sms.content = '自动化测试之手机名单上传:insert is here!';
+	this.sms.path = '/Users/hyy/FastWork/send_sms/person.txt';
 
 	/**
 	 * 封装函数
@@ -134,7 +124,7 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[短信标签页]');
+	self.log('点击短信标签页');
 	self.page.evaluate(function() {
 		var _btn = document.getElementById('bizNav110201');
 		var _event = document.createEvent('MouseEvents');
@@ -159,9 +149,9 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[使用个性化短信]');
+	self.log('点击上传文件');
 	self.page.evaluate(function() {
-		var _btn = document.getElementById('useSpecialSmsCK');
+		var _btn = document.getElementById('importAtagId');
 		var _event = document.createEvent('MouseEvents');
 		_event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 		_btn.dispatchEvent(_event);
@@ -173,21 +163,18 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[选择文件]');
-	self.page.uploadFile('input[name=dynaDataFile]', self.sms.person_path);
-}, self.wait(10000));
+	self.log('选择上传文件');
+	self.page.uploadFile('input[name=importMdnFile]', self.sms.path);
+}, self.wait(1000));
 
 setTimeout(function() {
 	self.render(self.next());
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[完成 | 忽略并完成]');
+	self.log('点击导入');
 	self.page.evaluate(function() {
-		var _btn = document.getElementById('dynDataImportFinishBtn');
-		if (_btn == undefined || _btn == null) {
-			_btn = document.getElementById('dynDataImportFinishBtn');
-		}
+		var _btn = $('input[value="导入"]')[0];
 		var _event = document.createEvent('MouseEvents');
 		_event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
 		_btn.dispatchEvent(_event);
@@ -199,7 +186,7 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[发送]');
+	self.log('点击发送');
 	self.page.evaluate(function() {
 		var _btns = document.getElementsByClassName('confimbtn2 w120 mar10');
 		var _btn;
@@ -218,15 +205,15 @@ setTimeout(function() {
 	self.render(self.next());
 }, self.wait(1000));
 
-//setTimeout(function() {
-//	self.log('退出程序...');
-//	self.log('生成' + (self.next() - 1) + '张图片');
-//	self.log('耗时' + (self.wait(0)) + '毫秒');
-//	phantom.exit();
-//}, self.wait(0));
+setTimeout(function() {
+	self.log('退出程序...');
+	self.log('生成' + (self.next() - 1) + '张图片');
+	self.log('耗时' + (self.wait(0)) + '毫秒');
+	phantom.exit();
+}, self.wait(0));
 
 setTimeout(function() {
-	self.log('点击[确定发送]');
+	self.log('点击确定发送');
 	self.page.evaluate(function() {
 		var _btn = document.getElementById('confirmSendBtn');
 		var _event = document.createEvent('MouseEvents');
