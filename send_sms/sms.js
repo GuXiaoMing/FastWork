@@ -5,25 +5,29 @@ function Self(url) {
 	 */
 
 	this.url = url;
-	this.fs = require('fs');
+	var fs = require('fs');
+	this.fs = fs;
 	this.page = require('webpage').create();
 	this.args = require('system').args;
 	this.login_info = {};
 	this.login_info.code = this.args[1];
 	this.login_info.user_name = this.args[2];
 	this.login_info.password = this.args[3];
+	this.run_time = '';
+	this.pic_path = '';
 	this.sms = {};
+	this.sms.head = '【恒大金服】';
 	this.sms.content = '';
-	this.sms.content_path = '/Users/hyy/FastWork/send_sms/content.txt';
-	this.sms.person_path = '/Users/hyy/FastWork/send_sms/var.csv';
 
-	/**
-	 * 读取内容
-	 */
-	this.sms.content = this.fs.read(this.sms.content_path);
-	if (this.sms.content.lastIndexOf('\n') == this.sms.content.length - 1) {
-		this.sms.content = this.sms.content.substr(0, this.sms.content.length - 1);
-	}
+	this.work_path = this.args[4];
+	this.sms.content_path = this.args[5];
+	this.sms.person_path = this.args[6];
+
+	this.log_path = '';
+	
+	this.rst = {};
+	this.rst.msgid = '';
+	this.rst.taskid = '';
 
 	/**
 	 * 封装函数
@@ -37,20 +41,44 @@ function Self(url) {
 		var HH = date.getHours();
 		var mm = date.getMinutes();
 		var ss = date.getSeconds();
+		MM = MM < 10 ? "0" + MM : MM;
+		dd = dd < 10 ? "0" + dd : dd;
+		HH = HH < 10 ? "0" + HH : HH;
+		mm = mm < 10 ? "0" + mm : mm;
 		ss = ss < 10 ? "0" + ss : ss;
 		return yyyy + "-" + MM + "-" + dd + " " + HH + ":" + mm + ":" + ss;
 	};
 	this.getDate = getDate;
 
+	var nowTime = function() {
+		var date = new Date();
+		var yyyy = date.getFullYear();
+		var MM = date.getMonth() + 1;
+		var dd = date.getDate();
+		var HH = date.getHours();
+		var mm = date.getMinutes();
+		var ss = date.getSeconds();
+		MM = MM < 10 ? "0" + MM : MM;
+		dd = dd < 10 ? "0" + dd : dd;
+		HH = HH < 10 ? "0" + HH : HH;
+		mm = mm < 10 ? "0" + mm : mm;
+		ss = ss < 10 ? "0" + ss : ss;
+		return yyyy + "" + MM + "" + dd + "_" + HH + "" + mm + "" + ss;
+	};
+	this.nowTime = nowTime;
+
 	var log = function(str) {
-		console.log(this.getDate() + " " + str);
+		str = this.getDate() + " " + str;
+		console.log(str);
+		this.fs.write(this.log_path, str + "\n", 'a');
 	};
 	this.log = log;
 
 	var exit = function() {
-		this.log('退出程序...');
-		this.log('生成' + (this.next() - 1) + '张图片');
-		this.log('耗时' + (this.wait(0)) + '毫秒');
+		this.log('退出程序.');
+		this.log('共生成' + (this.next() - 1) + '张图片');
+		this.log('总耗时' + (this.wait(0)) + '毫秒');
+		this.page.close();
 		phantom.exit();
 	};
 	this.exit = exit;
@@ -68,8 +96,8 @@ function Self(url) {
 	};
 
 	this.render = function(step) {
-		this.page.render('picture_send' + step + '.png');
-		this.log('render picture_send' + step + '.png');
+		this.page.render(this.pic_path + '/picture_send' + step + '.png');
+		this.log('==== 生成 picture_send' + step + '.png');
 	};
 
 	/**
@@ -77,12 +105,35 @@ function Self(url) {
 	 */
 
 	this.page.onConsoleMessage = function(str) {
-		console.log(getDate() + " [onConsoleMessage] " + str);
+		str = getDate() + " [onConsoleMessage] " + str;
+		console.log(str);
+		fs.write(log_path, str + "\n", 'a');
 	}
 
 	this.page.onUrlChanged = function(str) {
-		console.log(getDate() + " [onUrlChanged] " + str);
+		str = getDate() + " [onUrlChanged] " + str;
+		console.log(str);
+		fs.write(log_path, str + "\n", 'a');
 	};
+
+	/**
+	 * 读取内容
+	 */
+
+	this.fs.changeWorkingDirectory(this.work_path);
+	this.run_time = this.nowTime();
+	this.pic_path = this.fs.workingDirectory + '/' + this.run_time;
+	this.log_path = this.fs.workingDirectory + '/' + this.run_time + '/run.log';
+	var log_path = this.fs.workingDirectory + '/' + this.run_time + '/run.log';
+	if (this.fs.makeDirectory(this.pic_path)) {
+		this.log('图片存放路径[' + this.pic_path + '] create success');
+	} else {
+		this.log('图片存放路径[' + this.pic_path + '] create fail');
+	}
+	this.sms.content = this.fs.read(this.sms.content_path);
+	if (this.sms.content.lastIndexOf('\n') == this.sms.content.length - 1) {
+		this.sms.content = this.sms.content.substr(0, this.sms.content.length - 1);
+	}
 };
 
 var self = new Self('http://ums.zj165.com/index.jsp');
@@ -148,10 +199,12 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('填写短信内容');
-	self.page.evaluate(function(self) {
-		$("#sendTitleTextArea").val(self.sms.content);
-	}, self);
+	self.log('填写[短信内容]');
+	self.log('短信内容:' + self.sms.content);
+	self.log('短信长度:' + (self.sms.content.length + self.sms.head.length) + '个字符');
+	self.page.evaluate(function(content) {
+		$("#sendTitleTextArea").val(content);
+	}, self.sms.content);
 }, self.wait(1000));
 
 setTimeout(function() {
@@ -173,7 +226,7 @@ setTimeout(function() {
 }, self.wait(1000));
 
 setTimeout(function() {
-	self.log('点击[选择文件]');
+	self.log('点击[选择文件] 文件路径:' + self.sms.person_path);
 	self.page.uploadFile('input[name=dynaDataFile]', self.sms.person_path);
 }, self.wait(10000));
 
@@ -218,12 +271,9 @@ setTimeout(function() {
 	self.render(self.next());
 }, self.wait(1000));
 
-//setTimeout(function() {
-//	self.log('退出程序...');
-//	self.log('生成' + (self.next() - 1) + '张图片');
-//	self.log('耗时' + (self.wait(0)) + '毫秒');
-//	phantom.exit();
-//}, self.wait(0));
+setTimeout(function() {
+	self.exit();
+}, self.wait(0));
 
 setTimeout(function() {
 	self.log('点击[确定发送]');
